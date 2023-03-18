@@ -91,6 +91,8 @@ class UserController extends Controller
     {
         if ($req->action == "upload-profile-img") {
             return $this->uploadProfileImg($req);
+        } elseif ($req->action == "basic-details-Update") {
+            return $this->basicDetailsUpdate($req);
         } else {
             return  ApiRes::invalidAction();
         }
@@ -294,6 +296,181 @@ class UserController extends Controller
             return ApiRes::error();
         }
     }
+    public function partialUpdate(Request $req)
+    {
+        if ($req->action == "upload-profile-img") {
+            return $this->uploadProfileImg($req);
+        } elseif ($req->action == "basic-details-update") {
+            return $this->basicDetailsUpdate($req);
+        } elseif ($req->action == "about-me-update") {
+            return $this->aboutMeUpdate($req);
+        } elseif ($req->action == "religion-information-update") {
+            return $this->religionInfoUpdate($req);
+        } elseif ($req->action == "education-information-update") {
+            return $this->educationInfoUpdate($req);
+        } elseif ($req->action == "family-details-update") {
+            return $this->familyDetailsUpdate($req);
+        } elseif ($req->action == "location-info-update") {
+            return $this->locationInfoUpdate($req);
+        } elseif ($req->action == "habits-hobbies-update") {
+            return $this->habitsHobbiesUpdate($req);
+        } elseif ($req->action == "horoscope-info-update") {
+            return $this->horoscopeInfoUpdate($req);
+        } else {
+            return  ApiRes::invalidAction();
+        }
+    }
+    public function basicDetailsUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->created_by = $req->created_by;
+        $user->first_name = $req->first_name;
+        $user->last_name = $req->last_name;
+        $user->dob = $req->dob;
+        $user->age = $this->getAge($req->dob);
+        $user->gender = $req->gender;
+        $user->mother_tounge = $req->mother_tounge;
+        $user->marrital_status = $req->marrital_status;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Basic Details Updated Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
+    public function aboutMeUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->about_me = $req->about_me;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("AboutMe Updated Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
+    public function religionInfoUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->religion = $req->religion;
+        $user->caste = $req->caste;
+        $user->subcaste = $req->subcaste;
+        $user->marry_other_caste = $req->marry_other_caste;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Religion Information Updated Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
+    public function educationInfoUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->highest_education = $req->highest_education;
+        $user->additional_degree = $req->additional_degree;
+        $user->occupation = $req->occupation;
+        $user->employed_in = $req->employed_in;
+        $user->annual_income = $req->annual_income;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Education Information Updated Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
+    public function familyDetailsUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->family_status = $req->family_status;
+        $user->family_type = $req->family_type;
+        $user->family_values = $req->family_values;
+        $user->father_occupation = $req->father_occupation;
+        $user->mother_occupation = $req->mother_occupation;
+        $user->no_brothers = $req->no_brothers;
+        $user->no_married_brothers = $req->no_married_brothers;
+        $user->no_sisters = $req->no_sisters;
+        $user->no_married_sisters = $req->no_married_sisters;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Family Details Updated Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
+    public function locationInfoUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->country = $req->country;
+        $user->state = $req->state;
+        $user->city = $req->city;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Location Information Updated Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
+    public function habitsHobbiesUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->diet = $req->diet;
+        $user->drinking = $req->drinking;
+        $user->smoking = $req->smoking;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Habits and Hobbies Updated Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
+    public function physicalAttributesUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->height = $req->height;
+        $user->weight = $req->weight;
+        $user->body_type = $req->body_type;
+        $user->complexion = $req->complexion;
+        $user->physical_status = $req->physical_status;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Physical Attributes Updated Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
+    public function horoscopeInfoUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->have_dosh = $req->have_dosh;
+        $user->star = $req->star;
+        $user->rasi = $req->rasi;
+        $user->birth_time = $req->birth_time;
+        $user->birth_place = $req->birth_place;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Horoscope Information Updated Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
     public function logout(Request $req)
     {
         $user =  $req->user()->currentAccessToken()->delete();
