@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\EducationController;
 use App\Http\Controllers\Api\InterestController;
 use App\Http\Controllers\Api\MotherTongueController;
 use App\Http\Controllers\Api\OccupationController;
+use App\Http\Controllers\Api\PartnerPreferencesController;
 use App\Http\Controllers\Api\ReligionController;
 use App\Http\Controllers\Api\ShortlitController;
 use App\Http\Controllers\Api\VisitedProfileController;
@@ -61,6 +62,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::controller(ShortlitController::class)->group(function () {
         Route::any('/shortlist', 'shortlist');
+    });
+
+    Route::controller(PartnerPreferencesController::class)->group(function () {
+        Route::any('/partner-preference', 'partnerPreference');
     });
 
     Route::controller(VisitedProfileController::class)->group(function () {
