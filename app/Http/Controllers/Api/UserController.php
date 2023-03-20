@@ -89,11 +89,7 @@ class UserController extends Controller
     }
     public function update(Request $req)
     {
-        if ($req->action == "upload-profile-img") {
-            return $this->uploadProfileImg($req);
-        } else {
-            return  ApiRes::invalidAction();
-        }
+
 
 
 
@@ -212,6 +208,30 @@ class UserController extends Controller
             return ApiRes::success("Profile image uploaded successfully !.");
         } else {
             return ApiRes::error();
+        }
+    }
+    public function UserImage(Request $req)
+    {
+        if ($req->action == "get") {
+            $img = Img::Where('uid', $req->user()->uid)->get();
+            if ($img) {
+
+                return ApiRes::data("Image list.", $img);
+            } else {
+                return ApiRes::error();
+            }
+        } elseif ($req->action == "upload-profile-img") {
+            return $this->uploadProfileImg($req);
+        } elseif ($req->action == "delete") {
+            $img = Img::Where('img_id', $req->img_id)->delete();
+            if ($img) {
+
+                return ApiRes::success("Image Deleted Successfully !");
+            } else {
+                return ApiRes::error();
+            }
+        } else {
+            return  ApiRes::invalidAction();
         }
     }
     public function verifyUser(Request $req)
