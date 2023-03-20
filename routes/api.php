@@ -60,6 +60,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/user/upload-id-proof', [UserController::class, "uploadIdProof"]);
     Route::post('/user/upload-profile-img', [UserController::class, "uploadProfileImg"]);
 
+    Route::any('/user/image', [UserController::class, "UserImage"]);
+
     Route::controller(ShortlitController::class)->group(function () {
         Route::any('/shortlist', 'shortlist');
     });
