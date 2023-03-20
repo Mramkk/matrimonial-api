@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Helper\ApiRes;
 use App\Http\Controllers\Controller;
-use App\Models\Shortlit;
+use App\Models\VisitedProfile;
 use Illuminate\Http\Request;
 
-class ShortlitController extends Controller
+class VisitedProfileController extends Controller
 {
-    public function shortlist(Request $req)
+    public function visitedProfile(Request $req)
     {
         if ($req->user()->status == 1) {
             if ($req->action == "save") {
@@ -27,30 +27,30 @@ class ShortlitController extends Controller
     }
     public function save(Request $req)
     {
-        $short = new Shortlit();
-        $short->uid = $req->uid;
-        $short->muid = $req->user()->uid;
-        $res = $short->save();
+        $visit = new VisitedProfile();
+        $visit->uid = $req->uid;
+        $visit->muid = $req->user()->uid;
+        $res = $visit->save();
         if ($res) {
-            return ApiRes::success('Shortlited');
+            return ApiRes::success('Visited Profile');
         } else {
             return ApiRes::error();
         }
     }
     public function data(Request $req)
     {
-        $short = Shortlit::where('muid', $req->user()->uid)->get();
+        $visit = VisitedProfile::where('muid', $req->user()->uid)->get();
 
-        if ($short) {
-            return ApiRes::data('Shortlited Data', $short);
+        if ($visit) {
+            return ApiRes::data('Visited Profile Data', $visit);
         } else {
             return ApiRes::error();
         }
     }
     public function delete(Request $req)
     {
-        $short = Shortlit::where('uid', $req->uid)->where('muid', $req->user()->uid)->first();
-        $res = $short->delete();
+        $visit = VisitedProfile::where('uid', $req->uid)->where('muid', $req->user()->uid)->first();
+        $res = $visit->delete();
         if ($res) {
             return ApiRes::success('Deleted !');
         } else {
