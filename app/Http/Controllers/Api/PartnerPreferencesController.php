@@ -13,6 +13,8 @@ class PartnerPreferencesController extends Controller
     {
         if ($req->action == "basic-preference") {
             return $this->save($req);
+        } else if ($req->action == "data") {
+            return $this->data($req);
         } else if ($req->action == "education-profession") {
             return $this->educationProfession($req);
         } else if ($req->action == "religion") {
@@ -23,6 +25,17 @@ class PartnerPreferencesController extends Controller
             return $this->expectation($req);
         } else {
             return  ApiRes::invalidAction();
+        }
+    }
+
+    public function data(Request $req)
+    {
+        $partner = PartnerPreference::where('uid', $req->user()->uid)->first();
+
+        if ($partner) {
+            return ApiRes::data('Partner Preference Data', $partner);
+        } else {
+            return ApiRes::error();
         }
     }
 
