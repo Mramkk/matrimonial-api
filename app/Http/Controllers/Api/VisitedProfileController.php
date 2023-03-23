@@ -27,19 +27,24 @@ class VisitedProfileController extends Controller
     }
     public function save(Request $req)
     {
-        $visit = new VisitedProfile();
-        $visit->uid = $req->uid;
-        $visit->muid = $req->user()->uid;
-        $res = $visit->save();
-        if ($res) {
-            return ApiRes::success('Visited Profile');
+        $status = VisitedProfile::where('muid', $req->user()->uid)->first();
+        if ($status) {
+            return ApiRes::success('Already Visited Profile');
         } else {
-            return ApiRes::error();
+            $visit = new VisitedProfile();
+            $visit->uid = $req->user()->uid;
+            $visit->muid =  $req->uid;
+            $res = $visit->save();
+            if ($res) {
+                return ApiRes::success('Visited Profile');
+            } else {
+                return ApiRes::error();
+            }
         }
     }
     public function data(Request $req)
     {
-        $visit = VisitedProfile::where('muid', $req->user()->uid)->get();
+        $visit = VisitedProfile::select('uid')->where('muid', $req->user()->uid)->latest()->with('user')->get();
 
         if ($visit) {
             return ApiRes::data('Visited Profile Data', $visit);

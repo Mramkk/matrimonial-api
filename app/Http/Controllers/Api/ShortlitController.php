@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Helper\ApiRes;
 use App\Http\Controllers\Controller;
 use App\Models\Shortlit;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class ShortlitController extends Controller
@@ -39,7 +40,9 @@ class ShortlitController extends Controller
     }
     public function data(Request $req)
     {
-        $short = Shortlit::where('muid', $req->user()->uid)->get();
+
+        $short = Shortlit::select('uid')->where('muid', $req->user()->uid)->latest()->with('user')->get();
+
 
         if ($short) {
             return ApiRes::data('Shortlited Data', $short);

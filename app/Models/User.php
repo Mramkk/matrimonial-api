@@ -44,15 +44,21 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
-
     public function img()
     {
-        return $this->hasMany(Img::class, 'uid', 'uid')->orderBy('active', 'DESC');;
+        return $this->hasMany(Img::class, 'uid', 'uid')->where('type', 'lg');
     }
-
+    public function imgsm()
+    {
+        return $this->hasMany(Img::class, 'uid', 'uid')->where('type', 'sm')->where('active', '1');
+    }
+    public function imgmd()
+    {
+        return $this->hasMany(Img::class, 'uid', 'uid')->where('type', 'md')->where('active', '1');
+    }
     public function imglg()
     {
-        return $this->hasMany(Img::class, 'uid', 'uid')->where('type', 'lg');
+        return $this->hasMany(Img::class, 'uid', 'uid')->where('type', 'lg')->where('active', '1');
     }
 
     public function shortlist()
@@ -62,5 +68,9 @@ class User extends Authenticatable
     public function interest()
     {
         return $this->hasMany(Interest::class, 'uid', 'uid');
+    }
+    public function visited()
+    {
+        return $this->hasMany(VisitedProfile::class, 'uid', 'uid');
     }
 }

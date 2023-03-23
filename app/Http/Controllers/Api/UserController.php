@@ -89,20 +89,6 @@ class UserController extends Controller
     }
     public function update(Request $req)
     {
-        if ($req->action == "upload-profile-img") {
-            return $this->uploadProfileImg($req);
-        } else {
-            return  ApiRes::invalidAction();
-        }
-
-
-
-
-
-
-
-
-
 
         $data = [
             'marrital_status' => $req->marrital_status,
@@ -137,10 +123,6 @@ class UserController extends Controller
             'no_married_sisters' => $req->no_married_sisters,
             'about_me' => $req->about_me,
             'complete' => '1',
-
-
-
-
         ];
         $res = User::Where('uid', $req->user()->uid)->update($data);
         if ($res) {
@@ -226,13 +208,33 @@ class UserController extends Controller
             }
         } elseif ($req->action == "upload-profile-img") {
             return $this->uploadProfileImg($req);
-        } elseif ($req->action == "delete") {
-            $img = Img::Where('img_id', $req->img_id)->delete();
-            if ($img) {
+        } elseif ($req->action == "set-profile-picture") {
 
-                return ApiRes::success("Image Deleted Successfully !");
+            $status = Img::Where('uid', $req->user()->uid)->update(['active' => "0"]);
+            if ($status) {
+                $status = Img::Where('uid', $req->user()->uid)->Where('img_id', $req->img_id)->update(['active' => "1"]);
+                if ($status) {
+                    return ApiRes::success("Profile Picture Set Successfully !");
+                } else {
+                    return ApiRes::error();
+                }
+                return ApiRes::success("Profile Picture Set Successfully !");
             } else {
                 return ApiRes::error();
+            }
+        } elseif ($req->action == "delete") {
+            $status = Img::Where('uid', $req->user()->uid)->Where('img_id', $req->img_id)->Where('type', "lg")->Where('active', '1')->first();
+            if ($status) {
+                return ApiRes::failed("You can't Delete Profile Picture !");
+            } else {
+
+                $img = Img::Where('uid', $req->user()->uid)->Where('img_id', $req->img_id)->delete();
+                if ($img) {
+
+                    return ApiRes::success("Image Deleted Successfully !");
+                } else {
+                    return ApiRes::error();
+                }
             }
         } else {
             return  ApiRes::invalidAction();
@@ -295,7 +297,13 @@ class UserController extends Controller
     }
     public function data(Request $req)
     {
-        $user = User::where('uid', $req->user()->uid)->with('img')->withCount('imglg')->with('shortlist')->with('interest')->get();
+        $user = User::where('uid', $req->user()->uid)->where('complete', '1')->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+            return $shortlist->where('muid', auth()->user()->uid)->get();
+        })->with('interest', function ($interest) {
+            return $interest->where('muid', auth()->user()->uid)->get();
+        })->with('visited', function ($visited) {
+            return $visited->where('muid', auth()->user()->uid)->get();
+        })->get();
 
         if ($user) {
 
@@ -306,11 +314,13 @@ class UserController extends Controller
     }
     public function UserList(Request $req)
     {
-
-
-        // $user = User::whereNotIn('id', [$req->user()->id])->where('complete', '1')->with('imglg')->with('shortlist')->with('interest')->get();
-        $user = User::whereNotIn('id', [$req->user()->id])->where('complete', '1')->with('img')->withCount('imglg')->with('shortlist')->with('interest')->get();
-
+        $user = User::whereNotIn('id', [$req->user()->id])->where('complete', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+            return $shortlist->where('muid', auth()->user()->uid)->get();
+        })->with('interest', function ($interest) {
+            return $interest->where('muid', auth()->user()->uid)->get();
+        })->with('visited', function ($visited) {
+            return $visited->where('muid', auth()->user()->uid)->get();
+        })->get();
 
         if ($user) {
             return ApiRes::data("User List !.", $user);
