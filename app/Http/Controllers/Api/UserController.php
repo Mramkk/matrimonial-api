@@ -11,6 +11,7 @@ use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Image;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -22,10 +23,16 @@ class UserController extends Controller
             return $this->verifyUser($req);
         } else if ($req->action == "otp") {
             return $this->sendOtp($req);
+        } else if ($req->action == "reg-otp") {
+            return $this->regSendOtp($req);
+        } else if ($req->action == "verify-user-phone") {
+            return $this->verifyUserPhone($req);
         } else if ($req->action == "verify otp") {
             return $this->verifyOtp($req);
         } else if ($req->action == "data") {
             return $this->data($req);
+        } else if ($req->action == "login") {
+            return $this->login($req);
         } else if ($req->action == "user-list") {
             if ($req->user()->status == 1) {
                 return $this->UserList($req);
@@ -62,27 +69,26 @@ class UserController extends Controller
         if ($error) {
             return $error;
         }
+        if ($this->getAge($req->dob) <= 17) {
+            return ApiRes::failed('Age must be 18 or greater than.');
+        }
         $user = new User();
-        $user->uid = uniqid();
-        $user->bhid = "BH" . random_int(100000, 999999);
-        $user->created_by = $req->created_by;
+        $user->uid = "BH" . random_int(100000, 999999);
+        $user->profile_for = $req->profile_for;
         $user->first_name = $req->first_name;
         $user->last_name = $req->last_name;
         $user->dob = $req->dob;
         $user->age = $this->getAge($req->dob);
         $user->gender = $req->gender;
-        $user->phone = $req->phone;
         $user->email = $req->email;
         $user->religion = $req->religion;
-        $user->caste = $req->caste;
+        $user->community = $req->community;
         $user->mother_tounge = $req->mother_tounge;
         $user->country = $req->country;
-        $user->state = $req->state;
-        $user->city = $req->city;
         $status = $user->save();
         if ($status) {
-            return  $this->sendOtp($req);
-            // return  ApiRes::success('You Register Successfuly !');
+            // return  $this->sendOtp($req);
+            return  ApiRes::success('You Register Successfuly !');
         } else {
             return  ApiRes::error();
         }
@@ -133,9 +139,12 @@ class UserController extends Controller
     }
     public function uploadIdProof(Request $req)
     {
+
         $status = false;
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $emailVerificationCode =  uniqid();
         if ($req->hasFile('id_proof')) {
-            $user = User::Where('uid', $req->user()->uid)->first();
+
             if ($user->id_proof != null) {
                 // delete old file
                 unlink('./uploads/document/' . $user->id_proof);
@@ -143,12 +152,24 @@ class UserController extends Controller
             $name =  uniqid() . ".webp";
             Image::make($req->id_proof->getRealPath())->resize('480', '360')->save('uploads/document/' . $name);
             $user->id_proof = $name;
+            $user->document = "1";
+            $user->status = "1";
+            $user->completed = "1";
+            $user->completed = "1";
+            $user->email_verification_code = $emailVerificationCode;
             $status = $user->update();
         }
 
 
         if ($status) {
-            return ApiRes::success("Id proof uploaded successfully !.");
+            $mail = new MailController();
+            $url = url('') . "/email-varification/" . $emailVerificationCode;
+            $body = "<H1> Best Humsafar </H1> <br>
+                     <p>Thank you for registration </p>
+                     <a href='$url'> verify email </a>
+            ";
+            return  $mail->regMail($user->email, $body);
+            // return ApiRes::success("Id proof uploaded successfully !.");
         } else {
             return ApiRes::error();
         }
@@ -191,7 +212,14 @@ class UserController extends Controller
 
 
         if ($status) {
-            return ApiRes::success("Profile image uploaded successfully !.");
+            $user = User::Where('uid', $req->user()->uid)->first();
+            $user->photo = "1";
+            $user->update();
+            if ($status) {
+                return ApiRes::success("Profile image uploaded successfully !.");
+            } else {
+                return ApiRes::error();
+            }
         } else {
             return ApiRes::error();
         }
@@ -242,6 +270,16 @@ class UserController extends Controller
     }
     public function verifyUser(Request $req)
     {
+        $validator = Validator::make($req->all(), [
+
+            'phone' => 'required|max:255',
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('phone')) {
+                return ApiRes::failed($errors->first('phone'));
+            }
+        }
         $status = $this->phoneValidation($req->phone);
         if ($status == true) {
             $user = User::Where('phone', $req->phone)->first();
@@ -252,6 +290,45 @@ class UserController extends Controller
             }
         }
     }
+
+    public function verifyUserPhone(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            'phone' => 'required|unique:users|max:255',
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('phone')) {
+                return ApiRes::failed($errors->first('phone'));
+            }
+        }
+        $status = $this->phoneValidation($req->phone);
+        if ($status) {
+            return ApiRes::success("success");
+        } else {
+            return ApiRes::failed("Please enter (10) digits mobile number .");
+        }
+    }
+
+    public function regSendOtp(Request $req)
+    {
+        $status = $this->phoneValidation($req->phone);
+        if ($status == true) {
+            $user = User::Where('email', $req->email)->first();
+            if (!$user || $user->email != $req->email) {
+                return ApiRes::failed("User not found.");
+            } else {
+
+                $res = User::Where('email', $req->email)->update(['phone' => $req->phone, 'otp' => '123456']);
+                if ($res) {
+                    return ApiRes::otp("otp sent on your phone.", "123456");
+                } else {
+                    return ApiRes::error();
+                }
+            }
+        }
+    }
+
     public function sendOtp(Request $req)
     {
         $status = $this->phoneValidation($req->phone);
@@ -274,6 +351,7 @@ class UserController extends Controller
     }
     public function verifyOtp(Request $req)
     {
+
         $phone = $this->phoneValidation($req->phone);
         if ($phone == false) {
             return ApiRes::failed("Please enter 10 (Digit) phone no.");
@@ -286,7 +364,7 @@ class UserController extends Controller
                     "remember_token" => $token
                 ]);
                 if ($res) {
-                    return ApiRes::rlMsg("You login successfully !.", $user->uid, $token);
+                    return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
                 } else {
                     return ApiRes::error();
                 }
@@ -295,15 +373,76 @@ class UserController extends Controller
             }
         }
     }
+    public function login(Request $req)
+    {
+        if ($req->email_phone == null && $req->email_phone == "") {
+            return ApiRes::failed("Email id or Mobile Number Requred !");
+        }
+        if ($req->password == null && $req->password == "") {
+            return ApiRes::failed(" Password Requred !");
+        } else {
+
+            $user = User::orWhere('phone', 'like', '%' . $req->email_phone . '%')->orWhere('email', 'like', '%' . $req->email_phone . '%')->first();
+            if ($user && Hash::check($req->password, $user->password)) {
+
+                $token = $user->createToken($user->uid)->plainTextToken;
+                $res = User::where('uid', $user->uid)->update([
+                    "remember_token" => $token
+                ]);
+                if ($res) {
+                    return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
+                } else {
+                    return ApiRes::credentials();
+                }
+            } else {
+                return ApiRes::credentials();
+            }
+        }
+
+        // if ($req->phone != null) {
+        //     $user  = User::Where('phone', 'like', '%' . $req->phone . '%')->first();
+
+        //     if ($user->otp == $req->otp) {
+        //         $token = $user->createToken($user->uid)->plainTextToken;
+        //         $res = User::where('uid', $user->uid)->update([
+        //             "remember_token" => $token
+        //         ]);
+        //         if ($res) {
+
+        //             return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
+        //         } else {
+        //             return ApiRes::error();
+        //         }
+        //     }
+        // } elseif ($req->email != null) {
+        //     $user  = User::Where('phone',  $req->email)->first();
+
+        //     if ($user && Hash::check($req->password, $user->password)) {
+        //         $token = $user->createToken($user->uid)->plainTextToken;
+        //         $res = User::where('uid', $user->uid)->update([
+        //             "remember_token" => $token
+        //         ]);
+        //         if ($res) {
+
+
+        //             return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
+        //         } else {
+        //             return ApiRes::error();
+        //         }
+        //     }
+        // }
+    }
     public function data(Request $req)
     {
-        $user = User::where('uid', $req->user()->uid)->where('complete', '1')->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
-            return $shortlist->where('muid', auth()->user()->uid)->get();
-        })->with('interest', function ($interest) {
-            return $interest->where('muid', auth()->user()->uid)->get();
-        })->with('visited', function ($visited) {
-            return $visited->where('muid', auth()->user()->uid)->get();
-        })->get();
+        // $user = User::where('uid', $req->user()->uid)->where('completed', '1')->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+        //     return $shortlist->where('muid', auth()->user()->uid)->get();
+        // })->with('interest', function ($interest) {
+        //     return $interest->where('muid', auth()->user()->uid)->get();
+        // })->with('visited', function ($visited) {
+        //     return $visited->where('muid', auth()->user()->uid)->get();
+        // })->get();
+
+        $user = User::where('uid', $req->user()->uid)->with('imgsm')->with('imgmd')->with('imglg')->get();
 
         if ($user) {
 
@@ -314,7 +453,7 @@ class UserController extends Controller
     }
     public function UserList(Request $req)
     {
-        $user = User::whereNotIn('id', [$req->user()->id])->where('complete', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+        $user = User::whereNotIn('id', [$req->user()->id])->where('completed', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
             return $shortlist->where('muid', auth()->user()->uid)->get();
         })->with('interest', function ($interest) {
             return $interest->where('muid', auth()->user()->uid)->get();
@@ -324,6 +463,80 @@ class UserController extends Controller
 
         if ($user) {
             return ApiRes::data("User List !.", $user);
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function search(Request $req)
+    {
+        if ($req->action == "search-by-bhid") {
+            return $this->searchByBhid($req);
+        } elseif ($req->action == "search-by-uid") {
+            return $this->searchByUid($req);
+        } elseif ($req->action == "advance-search") {
+            return $this->advanceSearch($req);
+        }
+    }
+    public function advanceSearch(Request $req)
+    {
+
+        $user = User::whereNotIn('id', [$req->user()->id])->where('complete', '1')->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+            return $shortlist->where('muid', auth()->user()->uid)->get();
+        })->with('interest', function ($interest) {
+            return $interest->where('muid', auth()->user()->uid)->get();
+        })->with('visited', function ($visited) {
+            return $visited->where('muid', auth()->user()->uid)->get();
+        })->get();
+        if ($req->age_from != null && $req->age_to != null) {
+            $user = $user->whereBetween('age', [$req->age_from, $req->age_to]);
+        }
+        if ($req->height_from != null && $req->height_to != null) {
+            $user = $user->whereBetween('height', [$req->height_from, $req->height_to]);
+        }
+        if ($req->marrital_status != null) {
+            $user = $user->where('marrital_status', $req->marrital_status);
+        }
+        if ($req->physical_status != null) {
+            $user = $user->where('physical_status', $req->physical_status);
+        }
+
+
+
+
+        if ($user) {
+            return ApiRes::data("User Details !.", $user);
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function searchByBhid(Request $req)
+    {
+        $user = User::where('bhid', $req->bhid)->where('complete', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+            return $shortlist->where('muid', auth()->user()->uid)->get();
+        })->with('interest', function ($interest) {
+            return $interest->where('muid', auth()->user()->uid)->get();
+        })->with('visited', function ($visited) {
+            return $visited->where('muid', auth()->user()->uid)->get();
+        })->get();
+
+        if ($user) {
+            return ApiRes::data("User Details !.", $user);
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function searchByUid(Request $req)
+    {
+        $user = User::where('uid', $req->uid)->where('complete', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+            return $shortlist->where('muid', auth()->user()->uid)->get();
+        })->with('interest', function ($interest) {
+            return $interest->where('muid', auth()->user()->uid)->get();
+        })->with('visited', function ($visited) {
+            return $visited->where('muid', auth()->user()->uid)->get();
+        })->get();
+
+        if ($user) {
+            return ApiRes::data("User Details !.", $user);
         } else {
             return ApiRes::error();
         }
@@ -346,12 +559,196 @@ class UserController extends Controller
             return $this->locationInfoUpdate($req);
         } elseif ($req->action == "habits-hobbies-update") {
             return $this->habitsHobbiesUpdate($req);
+        } elseif ($req->action == "physical-attributes-update") {
+            return $this->physicalAttributesUpdate($req);
         } elseif ($req->action == "horoscope-info-update") {
             return $this->horoscopeInfoUpdate($req);
+        } elseif ($req->action == "reg-step-1") {
+            return $this->regStep1($req);
+        } elseif ($req->action == "acc-details") {
+            return $this->accDetails($req);
+        } elseif ($req->action == "personal-details") {
+            return $this->personalDetails($req);
+        } elseif ($req->action == "physical-details") {
+            return $this->physicalDetails($req);
+        } elseif ($req->action == "edu-occ-details") {
+            return $this->eduOccDetails($req);
+        } elseif ($req->action == "habit-details") {
+            return $this->habitDetails($req);
+        } elseif ($req->action == "family-details") {
+            return $this->familyDetails($req);
+        } elseif ($req->action == "about-me") {
+            return $this->aboutMe($req);
         } else {
             return  ApiRes::invalidAction();
         }
     }
+    public function regStep1(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->state = $req->state;
+        $user->city = $req->city;
+        $user->marrital_status = $req->marrital_status;
+        $user->diet = $req->diet;
+        $user->height = $req->height;
+        $user->sub_community = $req->sub_community;
+        $user->marry_other_caste = $req->marry_other_caste;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Profile Update Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function accDetails(Request $req)
+    {
+        $error =  $this->accDetailsValidation($req);
+        if ($error) {
+            return $error;
+        }
+
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->first_name = $req->first_name;
+        $user->last_name = $req->last_name;
+        $user->phone = $req->phone;
+        $user->email = $req->email;
+        $user->password = Hash::make($req->password);
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Profile Update Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function personalDetails(Request $req)
+    {
+        $error =  $this->personalDetailsValidation($req);
+        if ($error) {
+            return $error;
+        }
+
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->marrital_status = $req->marrital_status;
+        $user->sub_community = $req->sub_community;
+        $user->marry_other_caste = $req->marry_other_caste;
+        $user->state = $req->state;
+        $user->city = $req->city;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Profile Update Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function physicalDetails(Request $req)
+    {
+        $error =  $this->physicalDetailsValidation($req);
+        if ($error) {
+            return $error;
+        }
+
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->height = $req->height;
+        $user->weight = $req->weight;
+        $user->body_type = $req->body_type;
+        $user->complexion = $req->complexion;
+        $user->physical_status = $req->physical_status;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Profile Update Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function eduOccDetails(Request $req)
+    {
+        $error =  $this->eduOccDetailsValidation($req);
+        if ($error) {
+            return $error;
+        }
+
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->highest_education = $req->highest_education;
+        $user->additional_degree = $req->additional_degree;
+        $user->occupation = $req->occupation;
+        $user->employed_in = $req->employed_in;
+        $user->annual_income = $req->annual_income;
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Profile Update Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function habitDetails(Request $req)
+    {
+        $error =  $this->habitDetailsValidation($req);
+        if ($error) {
+            return $error;
+        }
+
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->diet = $req->diet;
+        $user->smoking = $req->smoking;
+        $user->drinking = $req->drinking;
+
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Profile Update Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function familyDetails(Request $req)
+    {
+        $error =  $this->familyDetailsValidation($req);
+        if ($error) {
+            return $error;
+        }
+
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->family_status = $req->family_status;
+        $user->family_type = $req->family_type;
+        $user->family_values = $req->family_values;
+        $user->father_occupation = $req->father_occupation;
+        $user->mother_occupation = $req->mother_occupation;
+        $user->no_brothers = $req->no_brothers;
+        $user->no_married_brothers = $req->no_married_brothers;
+        $user->no_sisters = $req->no_sisters;
+        $user->no_married_sisters = $req->no_married_sisters;
+
+
+
+
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Profile Update Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function aboutMe(Request $req)
+    {
+        $error =  $this->aboutMeValidation($req);
+        if ($error) {
+            return $error;
+        }
+
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->about_me = $req->about_me;
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Profile Update Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+    // =================================================================
     public function basicDetailsUpdate(Request $req)
     {
         $user = User::Where('uid', $req->user()->uid)->first();
@@ -512,21 +909,86 @@ class UserController extends Controller
             return ApiRes::error();
         }
     }
+
     public function customValidation(Request $req)
     {
 
         $validator = Validator::make($req->all(), [
+            'profile_for' => 'required|max:255',
             'first_name' => 'required|max:255',
             'last_name' => 'required|max:255',
-            // 'phone' => 'required|max:255',
-            'phone' => 'required|unique:users|max:255',
+            'dob' => 'date_format:Y-m-d|before:today',
             'email' => 'required|email|unique:users|max:255',
             'religion' => 'required|max:255',
-            'caste' => 'required|max:255',
+            'community' => 'required|max:255',
             'mother_tounge' => 'required|max:255',
             'country' => 'required|max:255',
+
+
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('profile_for')) {
+                return ApiRes::failed($errors->first('profile_for'));
+            } else if ($errors->first('first_name')) {
+                return ApiRes::failed($errors->first('first_name'));
+            } else if ($errors->first('last_name')) {
+                return ApiRes::failed($errors->first('last_name'));
+            } else if ($errors->first('dob')) {
+                return ApiRes::failed($errors->first('dob'));
+            } else if ($errors->first('email')) {
+                return ApiRes::failed($errors->first('email'));
+            } else if ($errors->first('religion')) {
+                return ApiRes::failed($errors->first('religion'));
+            } else if ($errors->first('community')) {
+                return ApiRes::failed($errors->first('community'));
+            } else if ($errors->first('mother_tounge')) {
+                return ApiRes::failed($errors->first('mother_tounge'));
+            } else if ($errors->first('country')) {
+                return ApiRes::failed($errors->first('country'));
+            }
+        }
+
+        // $phone = $this->phoneValidation($req->phone);
+        // if ($phone == false) {
+        //     return ApiRes::failed("Please enter 10 (Digit) phone no.");
+        // }
+    }
+    public function personalDetailsValidation(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            'marrital_status' => 'required|max:255',
+            'sub_community' => 'required|max:255',
+            'marry_other_caste' => 'required|max:255',
             'state' => 'required|max:255',
             'city' => 'required|max:255',
+
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('marrital_status')) {
+                return ApiRes::failed($errors->first('marrital_status'));
+            } else if ($errors->first('sub_community')) {
+                return ApiRes::failed($errors->first('sub_community'));
+            } else if ($errors->first('marry_other_caste')) {
+                return ApiRes::failed($errors->first('marry_other_caste'));
+            } else if ($errors->first('state')) {
+                return ApiRes::failed($errors->first('state'));
+            } else if ($errors->first('city')) {
+                return ApiRes::failed($errors->first('city'));
+            }
+        }
+    }
+    public function  accDetailsValidation(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+
+            'first_name' => 'required|max:255',
+            'last_name' => 'required|max:255',
+            'email' => 'required|email|max:255',
+            'password' => 'required|string|min:6',
+
+
 
         ]);
         if ($validator->fails()) {
@@ -535,22 +997,10 @@ class UserController extends Controller
                 return ApiRes::failed($errors->first('first_name'));
             } else if ($errors->first('last_name')) {
                 return ApiRes::failed($errors->first('last_name'));
-            } else if ($errors->first('phone')) {
-                return ApiRes::failed($errors->first('phone'));
             } else if ($errors->first('email')) {
                 return ApiRes::failed($errors->first('email'));
-            } else if ($errors->first('religion')) {
-                return ApiRes::failed($errors->first('religion'));
-            } else if ($errors->first('caste')) {
-                return ApiRes::failed($errors->first('caste'));
-            } else if ($errors->first('mother_tounge')) {
-                return ApiRes::failed($errors->first('mother_tounge'));
-            } else if ($errors->first('country')) {
-                return ApiRes::failed($errors->first('country'));
-            } else if ($errors->first('state')) {
-                return ApiRes::failed($errors->first('state'));
-            } else if ($errors->first('city')) {
-                return ApiRes::failed($errors->first('city'));
+            } else if ($errors->first('password')) {
+                return ApiRes::failed($errors->first('password'));
             }
         }
 
@@ -559,11 +1009,107 @@ class UserController extends Controller
             return ApiRes::failed("Please enter 10 (Digit) phone no.");
         }
     }
+    public function physicalDetailsValidation(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            'height' => 'required|max:255',
+            'weight' => 'required|max:255',
+            'complexion' => 'required|max:255',
+            'physical_status' => 'required|max:255',
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('height')) {
+                return ApiRes::failed($errors->first('height'));
+            } else if ($errors->first('weight')) {
+                return ApiRes::failed($errors->first('weight'));
+            } else if ($errors->first('complexion')) {
+                return ApiRes::failed($errors->first('complexion'));
+            } else if ($errors->first('physical_status')) {
+                return ApiRes::failed($errors->first('physical_status'));
+            }
+        }
+    }
+    public function eduOccDetailsValidation(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            'highest_education' => 'required|max:255',
+            'occupation' => 'required|max:255',
+            'employed_in' => 'required|max:255',
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('highest_education')) {
+                return ApiRes::failed($errors->first('highest_education'));
+            } else if ($errors->first('occupation')) {
+                return ApiRes::failed($errors->first('occupation'));
+            } else if ($errors->first('employed_in')) {
+                return ApiRes::failed($errors->first('employed_in'));
+            }
+        }
+    }
+    public function habitDetailsValidation(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            'diet' => 'required|max:255',
+            'smoking' => 'required|max:255',
+            'drinking' => 'required|max:255',
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('diet')) {
+                return ApiRes::failed($errors->first('diet'));
+            } else if ($errors->first('smoking')) {
+                return ApiRes::failed($errors->first('smoking'));
+            } else if ($errors->first('drinking')) {
+                return ApiRes::failed($errors->first('drinking'));
+            }
+        }
+    }
+    public function familyDetailsValidation(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            'family_status' => 'required|max:255',
+            'family_type' => 'required|max:255',
+            'family_values' => 'required|max:255',
+            'no_married_sisters' => 'required|max:255',
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('family_status')) {
+                return ApiRes::failed($errors->first('family_status'));
+            } else if ($errors->first('family_type')) {
+                return ApiRes::failed($errors->first('family_type'));
+            } else if ($errors->first('family_values')) {
+                return ApiRes::failed($errors->first('family_values'));
+            } else if ($errors->first('no_married_sisters')) {
+                return ApiRes::failed($errors->first('no_married_sisters'));
+            }
+        }
+    }
+    public function aboutMeValidation(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            'about_me' => 'required|max:255',
+
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('about_me')) {
+                return ApiRes::failed($errors->first('about_me'));
+            }
+        }
+    }
     public function phoneValidation($phone)
     {
 
+
+
         $arr = str_split($phone);
         $len = count($arr);
+        if ($len <= 11) {
+            return false;
+        }
         $startPoint = $len - 10;
         $newPhone = substr($phone,  $startPoint, 10);
         if (count(str_split($newPhone)) == 10) {

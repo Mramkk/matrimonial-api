@@ -50,11 +50,15 @@ Route::controller(OccupationController::class)->group(function () {
 Route::controller(UserController::class)->group(function () {
     Route::any('/user', 'user');
 });
+Route::controller(CountryController::class)->group(function () {
+    Route::any('/country', 'country');
+});
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('/user/logout', [UserController::class, "logout"]);
     Route::get('/user/data', [UserController::class, "data"]);
     Route::get('/user/list', [UserController::class, "userList"]);
+    Route::get('/user/search', [UserController::class, "search"]);
     Route::post('/user/update', [UserController::class, "update"]);
     Route::post('/user/partial-update', [UserController::class, "partialUpdate"]);
     Route::post('/user/upload-id-proof', [UserController::class, "uploadIdProof"]);

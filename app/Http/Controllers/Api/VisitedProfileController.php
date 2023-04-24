@@ -27,7 +27,7 @@ class VisitedProfileController extends Controller
     }
     public function save(Request $req)
     {
-        $status = VisitedProfile::where('muid', $req->user()->uid)->first();
+        $status = VisitedProfile::where('uid', $req->user()->uid)->where('muid', $req->uid)->first();
         if ($status) {
             return ApiRes::success('Already Visited Profile');
         } else {

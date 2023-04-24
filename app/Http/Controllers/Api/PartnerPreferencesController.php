@@ -15,6 +15,8 @@ class PartnerPreferencesController extends Controller
             return $this->save($req);
         } else if ($req->action == "data") {
             return $this->data($req);
+        } else if ($req->action == "by-id") {
+            return $this->byId($req);
         } else if ($req->action == "education-profession") {
             return $this->educationProfession($req);
         } else if ($req->action == "religion") {
@@ -30,8 +32,16 @@ class PartnerPreferencesController extends Controller
 
     public function data(Request $req)
     {
-        $partner = PartnerPreference::where('uid', $req->user()->uid)->first();
-
+        $partner = PartnerPreference::where('uid', $req->user()->uid)->get();
+        if ($partner) {
+            return ApiRes::data('Partner Preference Data', $partner);
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function byId(Request $req)
+    {
+        $partner = PartnerPreference::where('uid', $req->uid)->get();
         if ($partner) {
             return ApiRes::data('Partner Preference Data', $partner);
         } else {
@@ -44,13 +54,16 @@ class PartnerPreferencesController extends Controller
         $status = PartnerPreference::where('uid', $req->user()->uid)->first();
         if ($status) {
             $partner = PartnerPreference::where('uid', $req->user()->uid)->first();
+            $partner->age_from = $req->age_from;
+            $partner->age_to = $req->age_to;
+            $partner->height_from = $req->height_from;
+            $partner->height_to = $req->height_to;
             $partner->marrital_status = $req->marrital_status;
-            $partner->age = $req->age;
-            $partner->height = $req->height;
+            $partner->physical_status = $req->physical_status;
             $partner->diet = $req->diet;
             $partner->smoking = $req->smoking;
             $partner->drinking = $req->drinking;
-            $partner->physical_status = $req->physical_status;
+
 
             $res = $partner->update();
             if ($res) {
@@ -61,13 +74,15 @@ class PartnerPreferencesController extends Controller
         } else {
             $partner = new PartnerPreference();
             $partner->uid = $req->user()->uid;
+            $partner->age_from = $req->age_from;
+            $partner->age_to = $req->age_to;
+            $partner->height_from = $req->height_from;
+            $partner->height_to = $req->height_to;
             $partner->marrital_status = $req->marrital_status;
-            $partner->age = $req->age;
-            $partner->height = $req->height;
+            $partner->physical_status = $req->physical_status;
             $partner->diet = $req->diet;
             $partner->smoking = $req->smoking;
             $partner->drinking = $req->drinking;
-            $partner->physical_status = $req->physical_status;
 
             $res = $partner->save();
             if ($res) {
@@ -100,9 +115,6 @@ class PartnerPreferencesController extends Controller
         $partner = PartnerPreference::where('uid', $req->user()->uid)->first();
         $partner->religion = $req->religion;
         $partner->caste = $req->caste;
-        $partner->have_dosh = $req->have_dosh;
-        $partner->dosh_type = $req->dosh_type;
-        $partner->star = $req->star;
         $partner->mother_tounge = $req->mother_tounge;
 
         $res = $partner->update();
