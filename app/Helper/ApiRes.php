@@ -27,6 +27,10 @@ class ApiRes
 
         return response()->json(["status" => false, "message" => $msg]);
     }
+    public static function dataNotFound()
+    {
+        return response()->json(["status" => false, "message" => "Data no found."]);
+    }
     public static function inactiveUser()
     {
         return response()->json(["status" => false, "message" => "Account Deactive User !"]);
@@ -48,6 +52,11 @@ class ApiRes
     {
 
         return response()->json(["status" => true, "message" => $msg]);
+    }
+    public static function update()
+    {
+
+        return response()->json(["status" => true, "message" => "Data updated successfully !"]);
     }
     public static function logout()
     {

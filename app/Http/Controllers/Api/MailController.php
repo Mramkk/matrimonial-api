@@ -37,14 +37,14 @@ class MailController extends Controller
             // $mail->AltBody = plain text version of email body;
 
             if (!$mail->send()) {
-                return ApiRes::failed("Email not sent.");
+                return ApiRes::failed("Error ! Verification Email not sent.");
             } else {
 
-                return ApiRes::success("Email has been sent.");
+                return ApiRes::success("Verification email  has been sent.");
             }
         } catch (Exception $e) {
 
-            return ApiRes::failed("Message could not be sent.");
+            return ApiRes::failed("Error ! Verification email could not be sent.");
         }
     }
 }

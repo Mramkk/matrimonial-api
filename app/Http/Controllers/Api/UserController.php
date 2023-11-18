@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Helper\ApiRes;
 use App\Http\Controllers\Controller;
 use App\Models\Img;
+use App\Models\PartnerPreference;
 use App\Models\User;
 use App\Models\Shortlit;
 use DateTime;
@@ -33,6 +34,8 @@ class UserController extends Controller
             return $this->data($req);
         } else if ($req->action == "login") {
             return $this->login($req);
+        } elseif ($req->action == "forget-password") {
+            return $this->forgetPassword($req);
         } else if ($req->action == "user-list") {
             if ($req->user()->status == 1) {
                 return $this->UserList($req);
@@ -168,8 +171,9 @@ class UserController extends Controller
                      <p>Thank you for registration </p>
                      <a href='$url'> verify email </a>
             ";
-            return  $mail->regMail($user->email, $body);
-            // return ApiRes::success("Id proof uploaded successfully !.");
+            $mail->regMail($user->email, $body);
+
+            return ApiRes::success("Id proof uploaded successfully !.");
         } else {
             return ApiRes::error();
         }
@@ -182,7 +186,7 @@ class UserController extends Controller
         if ($req->hasFile('image')) {
             $img = new Img();
             $name =  uniqid() . ".webp";
-            Image::make($req->image->getRealPath())->resize('320', '180')->save('uploads/image/' . $name);
+            Image::make($req->image->getRealPath())->resize('150', '150')->save('uploads/image/' . $name);
             $img->uid = $uid;
             $img->img_id = $maxId;
             $img->type = "sm";
@@ -191,7 +195,7 @@ class UserController extends Controller
             $status = $img->save();
             $img = new Img();
             $name =  uniqid() . ".webp";
-            Image::make($req->image->getRealPath())->resize('640', '480')->save('uploads/image/' . $name);
+            Image::make($req->image->getRealPath())->resize('300', '300')->save('uploads/image/' . $name);
             $img->uid = $uid;
             $img->img_id = $maxId;
             $img->type = "md";
@@ -201,7 +205,7 @@ class UserController extends Controller
 
             $img = new Img();
             $name =  uniqid() . ".webp";
-            Image::make($req->image->getRealPath())->resize('1280', '720')->save('uploads/image/' . $name);
+            Image::make($req->image->getRealPath())->resize('700', '700')->save('uploads/image/' . $name);
             $img->uid = $uid;
             $img->img_id = $maxId;
             $img->type = "lg";
@@ -381,56 +385,41 @@ class UserController extends Controller
         if ($req->password == null && $req->password == "") {
             return ApiRes::failed(" Password Requred !");
         } else {
+            $user = null;
+            $user = User::Where('email',  $req->email_phone)->first();
+            if ($user != null) {
+                if ($user && Hash::check($req->password, $user->password)) {
 
-            $user = User::orWhere('phone', 'like', '%' . $req->email_phone . '%')->orWhere('email', 'like', '%' . $req->email_phone . '%')->first();
-            if ($user && Hash::check($req->password, $user->password)) {
-
-                $token = $user->createToken($user->uid)->plainTextToken;
-                $res = User::where('uid', $user->uid)->update([
-                    "remember_token" => $token
-                ]);
-                if ($res) {
-                    return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
+                    $token = $user->createToken($user->uid)->plainTextToken;
+                    $res = User::where('uid', $user->uid)->update([
+                        "remember_token" => $token
+                    ]);
+                    if ($res) {
+                        return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
+                    } else {
+                        return ApiRes::credentials();
+                    }
                 } else {
                     return ApiRes::credentials();
                 }
             } else {
-                return ApiRes::credentials();
+                $user = User::Where('phone',  'like', '%' . $req->email_phone . '%')->first();
+                if ($user && Hash::check($req->password, $user->password)) {
+
+                    $token = $user->createToken($user->uid)->plainTextToken;
+                    $res = User::where('uid', $user->uid)->update([
+                        "remember_token" => $token
+                    ]);
+                    if ($res) {
+                        return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
+                    } else {
+                        return ApiRes::credentials();
+                    }
+                } else {
+                    return ApiRes::credentials();
+                }
             }
         }
-
-        // if ($req->phone != null) {
-        //     $user  = User::Where('phone', 'like', '%' . $req->phone . '%')->first();
-
-        //     if ($user->otp == $req->otp) {
-        //         $token = $user->createToken($user->uid)->plainTextToken;
-        //         $res = User::where('uid', $user->uid)->update([
-        //             "remember_token" => $token
-        //         ]);
-        //         if ($res) {
-
-        //             return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
-        //         } else {
-        //             return ApiRes::error();
-        //         }
-        //     }
-        // } elseif ($req->email != null) {
-        //     $user  = User::Where('phone',  $req->email)->first();
-
-        //     if ($user && Hash::check($req->password, $user->password)) {
-        //         $token = $user->createToken($user->uid)->plainTextToken;
-        //         $res = User::where('uid', $user->uid)->update([
-        //             "remember_token" => $token
-        //         ]);
-        //         if ($res) {
-
-
-        //             return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
-        //         } else {
-        //             return ApiRes::error();
-        //         }
-        //     }
-        // }
     }
     public function data(Request $req)
     {
@@ -453,43 +442,142 @@ class UserController extends Controller
     }
     public function UserList(Request $req)
     {
-        $user = User::whereNotIn('id', [$req->user()->id])->where('completed', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
-            return $shortlist->where('muid', auth()->user()->uid)->get();
-        })->with('interest', function ($interest) {
-            return $interest->where('muid', auth()->user()->uid)->get();
-        })->with('visited', function ($visited) {
-            return $visited->where('muid', auth()->user()->uid)->get();
-        })->get();
+        $user = null;
+        if ($req->user()->gender == "Male") {
+            $user = User::where('gender', 'Female')->where('completed', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+                return $shortlist->where('muid', auth()->user()->uid)->get();
+            })->with('interest', function ($interest) {
+                return $interest->where('muid', auth()->user()->uid)->get();
+            })->with('visited', function ($visited) {
+                return $visited->where('muid', auth()->user()->uid)->get();
+            })->get();
+        } elseif ($req->user()->gender == "Female") {
+            $user = User::where('gender', 'Male')->where('completed', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+                return $shortlist->where('muid', auth()->user()->uid)->get();
+            })->with('interest', function ($interest) {
+                return $interest->where('muid', auth()->user()->uid)->get();
+            })->with('visited', function ($visited) {
+                return $visited->where('muid', auth()->user()->uid)->get();
+            })->get();
+        }
+
 
         if ($user) {
             return ApiRes::data("User List !.", $user);
         } else {
             return ApiRes::error();
         }
+        // $user = User::whereNotIn('id', [$req->user()->id])->where('completed', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+        //     return $shortlist->where('muid', auth()->user()->uid)->get();
+        // })->with('interest', function ($interest) {
+        //     return $interest->where('muid', auth()->user()->uid)->get();
+        // })->with('visited', function ($visited) {
+        //     return $visited->where('muid', auth()->user()->uid)->get();
+        // })->get();
+
+        // if ($user) {
+        //     return ApiRes::data("User List !.", $user);
+        // } else {
+        //     return ApiRes::error();
+        // }
     }
     public function search(Request $req)
     {
-        if ($req->action == "search-by-bhid") {
-            return $this->searchByBhid($req);
-        } elseif ($req->action == "search-by-uid") {
-            return $this->searchByUid($req);
+        if ($req->action == "search-by-id") {
+            return $this->searchById($req);
         } elseif ($req->action == "advance-search") {
             return $this->advanceSearch($req);
+        }
+    }
+    public function myMatches(Request $req)
+    {
+
+
+        $user = null;
+        if ($req->user()->gender == "Male") {
+            $pp = PartnerPreference::Where('uid', $req->user()->uid)->first();
+            $user = User::Where('gender', "Female")
+                ->WhereBetween('age', [$pp->age_from, $pp->age_to])
+                ->WhereBetween('height', [$pp->height_from, $pp->height_to])
+                ->Where('marrital_status', $pp->marrital_status)
+                // ->orWhere('physical_status', $pp->physical_status)
+                // ->orWhere('diet', $pp->diet)
+                // ->orWhere('smoking', $pp->smoking)
+                // ->orWhere('drinking', $pp->drinking)
+                ->Where('religion', $pp->religion)
+                ->Where('community', $pp->caste)
+                ->Where('mother_tounge', $pp->mother_tounge)
+                ->Where('country', $pp->country)
+                ->Where('state', $pp->state)
+                ->Where('city', $pp->city)
+                ->Where('highest_education', $pp->highest_education)
+                ->Where('occupation', $pp->occupation)
+                // ->orWhere('annual_income', $pp->annual_income)
+                ->where('completed', '1')->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+                    return $shortlist->where('muid', auth()->user()->uid)->get();
+                })->with('interest', function ($interest) {
+                    return $interest->where('muid', auth()->user()->uid)->get();
+                })->with('visited', function ($visited) {
+                    return $visited->where('muid', auth()->user()->uid)->get();
+                })->get();
+        } elseif ($req->user()->gender == "Female") {
+            $pp = PartnerPreference::Where('uid', $req->user()->uid)->first();
+            $user = User::Where('gender', "Male")
+                ->WhereBetween('age', [$pp->age_from, $pp->age_to])
+                ->WhereBetween('height', [$pp->height_from, $pp->height_to])
+                ->Where('marrital_status', $pp->marrital_status)
+                // ->orWhere('physical_status', $pp->physical_status)
+                // ->orWhere('diet', $pp->diet)
+                // ->orWhere('smoking', $pp->smoking)
+                // ->orWhere('drinking', $pp->drinking)
+                ->Where('religion', $pp->religion)
+                ->Where('community', $pp->caste)
+                ->Where('mother_tounge', $pp->mother_tounge)
+                ->Where('country', $pp->country)
+                ->Where('state', $pp->state)
+                ->Where('city', $pp->city)
+                ->Where('highest_education', $pp->highest_education)
+                ->Where('occupation', $pp->occupation)
+                // ->orWhere('annual_income', $pp->annual_income)
+                ->where('completed', '1')->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+                    return $shortlist->where('muid', auth()->user()->uid)->get();
+                })->with('interest', function ($interest) {
+                    return $interest->where('muid', auth()->user()->uid)->get();
+                })->with('visited', function ($visited) {
+                    return $visited->where('muid', auth()->user()->uid)->get();
+                })->get();
+        }
+
+
+
+
+        if ($user) {
+            return ApiRes::data("Matches List !.", $user);
+        } else {
+            return ApiRes::error();
         }
     }
     public function advanceSearch(Request $req)
     {
 
-        $user = User::whereNotIn('id', [$req->user()->id])->where('complete', '1')->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
-            return $shortlist->where('muid', auth()->user()->uid)->get();
-        })->with('interest', function ($interest) {
-            return $interest->where('muid', auth()->user()->uid)->get();
-        })->with('visited', function ($visited) {
-            return $visited->where('muid', auth()->user()->uid)->get();
-        })->get();
-        if ($req->age_from != null && $req->age_to != null) {
-            $user = $user->whereBetween('age', [$req->age_from, $req->age_to]);
+        $user = User::whereNotIn('id', [$req->user()->id])->where('completed', '1')
+            ->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+                return $shortlist->where('muid', auth()->user()->uid)->get();
+            })->with('interest', function ($interest) {
+                return $interest->where('muid', auth()->user()->uid)->get();
+            })->with('visited', function ($visited) {
+                return $visited->where('muid', auth()->user()->uid)->get();
+            })->get();
+        if ($req->user()->gender == "Male") {
+            $user = $user->where('gender', "Female");
+        } else if ($req->user()->gender == "Female") {
+            $user = $user->where('gender', "Male");
         }
+        // age
+        if ($req->age_from != null && $req->age_to != null) {
+            $user =  $user->whereBetween('age', [$req->age_from, $req->age_to]);
+        }
+        // height
         if ($req->height_from != null && $req->height_to != null) {
             $user = $user->whereBetween('height', [$req->height_from, $req->height_to]);
         }
@@ -499,19 +587,65 @@ class UserController extends Controller
         if ($req->physical_status != null) {
             $user = $user->where('physical_status', $req->physical_status);
         }
+        if ($req->country != null) {
+            $user = $user->where('country', $req->country);
+        }
+        if ($req->state != null) {
+            $user = $user->where('state', $req->state);
+        }
+        if ($req->city != null) {
+            $user = $user->where('city', $req->city);
+        }
+        // religion
+        if ($req->religion != null) {
+            $user = $user->where('religion', $req->religion);
+        }
+        if ($req->caste != null) {
+            $user = $user->where('community', $req->caste);
+        }
+        if ($req->mother_tounge != null) {
+            $user = $user->where('mother_tounge', $req->mother_tounge);
+        }
+
+
+        if ($req->education != null) {
+            $user = $user->where('highest_education', $req->education);
+        }
+        if ($req->occupation != null) {
+            $user = $user->where('occupation', $req->occupation);
+        }
+        if ($req->annual_income != null) {
+            $user = $user->where('annual_income', $req->annual_income);
+        }
+        if ($req->diet != null) {
+            $user = $user->where('diet', $req->diet);
+        }
+        if ($req->smoking != null) {
+            $user = $user->where('smoking', $req->smoking);
+        }
+        if ($req->drinking != null) {
+            $user = $user->where('drinking', $req->drinking);
+        }
+
+
+
+
 
 
 
 
         if ($user) {
-            return ApiRes::data("User Details !.", $user);
+            return ApiRes::data("User Details !.", $user->values()->all());
         } else {
             return ApiRes::error();
         }
     }
-    public function searchByBhid(Request $req)
+    public function searchById(Request $req)
     {
-        $user = User::where('bhid', $req->bhid)->where('complete', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+        if ($req->uid == "" || $req->uid == null) {
+            return ApiRes::failed("* Matri Id or Name Required !");
+        }
+        $user = User::orWhere('uid', $req->uid)->orWhere('first_name', 'like', '%' . $req->uid . '%')->orWhere('last_name', 'like', '%' . $req->uid . '%')->where('completed', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
             return $shortlist->where('muid', auth()->user()->uid)->get();
         })->with('interest', function ($interest) {
             return $interest->where('muid', auth()->user()->uid)->get();
@@ -519,28 +653,50 @@ class UserController extends Controller
             return $visited->where('muid', auth()->user()->uid)->get();
         })->get();
 
-        if ($user) {
-            return ApiRes::data("User Details !.", $user);
-        } else {
-            return ApiRes::error();
-        }
-    }
-    public function searchByUid(Request $req)
-    {
-        $user = User::where('uid', $req->uid)->where('complete', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
-            return $shortlist->where('muid', auth()->user()->uid)->get();
-        })->with('interest', function ($interest) {
-            return $interest->where('muid', auth()->user()->uid)->get();
-        })->with('visited', function ($visited) {
-            return $visited->where('muid', auth()->user()->uid)->get();
-        })->get();
+
 
         if ($user) {
             return ApiRes::data("User Details !.", $user);
         } else {
+            return ApiRes::failed("User Not Found !");
+        }
+    }
+    public function nearMe(Request $req)
+    {
+        if ($req->user()->gender == "Male") {
+            $user = User::WhereNotIn('id', [$req->user()->id])->Where('gender', "Female")->Where('country', $req->user()->country)->Where('state', $req->user()->state)->Where('city', $req->user()->city)->Where('completed', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+                return $shortlist->where('muid', auth()->user()->uid)->get();
+            })->with('interest', function ($interest) {
+                return $interest->where('muid', auth()->user()->uid)->get();
+            })->with('visited', function ($visited) {
+                return $visited->where('muid', auth()->user()->uid)->get();
+            })->get();
+        } else if ($req->user()->gender == "Female") {
+            $user = User::WhereNotIn('id', [$req->user()->id])->Where('gender', "Male")->Where('country', $req->user()->country)->Where('state', $req->user()->state)->Where('city', $req->user()->city)->Where('completed', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+                return $shortlist->where('muid', auth()->user()->uid)->get();
+            })->with('interest', function ($interest) {
+                return $interest->where('muid', auth()->user()->uid)->get();
+            })->with('visited', function ($visited) {
+                return $visited->where('muid', auth()->user()->uid)->get();
+            })->get();
+        }
+        // $user = User::WhereNotIn('id', [$req->user()->id])->Where('country', $req->user()->country)->Where('state', $req->user()->state)->Where('city', $req->user()->city)->Where('completed', '1')->latest()->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist', function ($shortlist) {
+        //     return $shortlist->where('muid', auth()->user()->uid)->get();
+        // })->with('interest', function ($interest) {
+        //     return $interest->where('muid', auth()->user()->uid)->get();
+        // })->with('visited', function ($visited) {
+        //     return $visited->where('muid', auth()->user()->uid)->get();
+        // })->get();
+
+
+
+        if ($user) {
+            return ApiRes::data("Near Me list !.", $user);
+        } else {
             return ApiRes::error();
         }
     }
+
     public function partialUpdate(Request $req)
     {
         if ($req->action == "upload-profile-img") {
@@ -579,6 +735,8 @@ class UserController extends Controller
             return $this->familyDetails($req);
         } elseif ($req->action == "about-me") {
             return $this->aboutMe($req);
+        } elseif ($req->action == "online") {
+            return $this->onlineUpdate($req);
         } else {
             return  ApiRes::invalidAction();
         }
@@ -599,6 +757,32 @@ class UserController extends Controller
             return ApiRes::success("Profile Update Successfully !.");
         } else {
             return ApiRes::error();
+        }
+    }
+    public function forgetPassword(Request $req)
+    {
+        $user = User::Where('phone',   $req->phone)->first();
+        $user->password = Hash::make($req->password);
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Password Changed Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function resetPassword(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        if (Hash::check($req->password, $user->password)) {
+            $user->password = Hash::make($req->new_password);
+            $status = $user->update();
+            if ($status) {
+                return ApiRes::success("Password Updated Successfully !.");
+            } else {
+                return ApiRes::error();
+            }
+        } else {
+            return ApiRes::failed("Old Password Incorrect !");
         }
     }
     public function accDetails(Request $req)
@@ -748,6 +932,29 @@ class UserController extends Controller
             return ApiRes::error();
         }
     }
+
+    public function onlineUpdate(Request $req)
+    {
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $user->online = $req->online;
+        $status = $user->update();
+        if ($status) {
+            return ApiRes::success("Update Successfully !.");
+        } else {
+            return ApiRes::error();
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
     // =================================================================
     public function basicDetailsUpdate(Request $req)
     {

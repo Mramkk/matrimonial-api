@@ -15,7 +15,6 @@ class CountryController extends Controller
     {
         if ($req->action == "all") {
             $country = Country::all();
-
             if ($country) {
                 return ApiRes::data("Country list", $country);
             } else {

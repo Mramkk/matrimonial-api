@@ -65,6 +65,7 @@ return new class extends Migration
             $table->enum('photo', [0, 1])->default(0);
             $table->enum('document', [0, 1])->default(0);
             $table->enum('completed', [0, 1])->default(0);
+            $table->enum('online', [0, 1])->default(0);
             $table->string('otp')->nullable();
             $table->rememberToken();
             $table->timestamps();

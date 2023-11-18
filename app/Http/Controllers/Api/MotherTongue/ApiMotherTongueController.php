@@ -1,25 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\MotherTongue;
 
 use App\Helper\ApiRes;
 use App\Http\Controllers\Controller;
 use App\Models\MotherTongue;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 
-class MotherTongueController extends Controller
+class ApiMotherTongueController extends Controller
 {
-    public function motherTongue(Request $req)
-    {
-        if ($req->action == "save") {
-            return $this->save($req);
-        } else if ($req->action == "data") {
-            return $this->data($req);
-        } else {
-            return  ApiRes::invalidAction();
-        }
-    }
     public function save(Request $req)
     {
         $rel = new MotherTongue();

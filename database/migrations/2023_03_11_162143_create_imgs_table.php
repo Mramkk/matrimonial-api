@@ -17,6 +17,11 @@ return new class extends Migration
             $table->integer('img_id')->uniqid();
             $table->string('type');
             $table->string('image');
+            $table->enum('active', [0, 1])->default(0);
+            $table->enum('hidden', [0, 1])->default(0);
+            $table->enum('visible', [0, 1])->default(1);
+            $table->enum('visible_to_paid', [0, 1])->default(0);
+            $table->enum('visible_to_accept', [0, 1])->default(0);
             $table->timestamps();
         });
     }
