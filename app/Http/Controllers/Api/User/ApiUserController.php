@@ -117,6 +117,34 @@ class ApiUserController extends Controller
             return ApiRes::error();
         }
     }
+    public function sendOTPLogin(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            'ccode' => 'required|string|max:255',
+            'phone' => 'required|numeric|digits:10',
+
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('ccode')) {
+                return ApiRes::failed($errors->first('ccode'));
+            } else if ($errors->first('phone')) {
+                return ApiRes::failed($errors->first('phone'));
+            }
+        }
+        $user = User::where('phone', $req->phone)->first();
+        if ($user != null) {
+            $user->otp = "123456";
+            $status = $user->update();
+            if ($status) {
+                return  ApiRes::success('OTP sent successfuly !');
+            } else {
+                return  ApiRes::error();
+            }
+        } else {
+            return ApiRes::error();
+        }
+    }
     public function verifyOTP(Request $req)
     {
         $validator = Validator::make($req->all(), [

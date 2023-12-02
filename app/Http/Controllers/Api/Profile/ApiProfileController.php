@@ -3,17 +3,22 @@
 namespace App\Http\Controllers\Api\Profile;
 
 use App\Helper\ApiRes;
+use App\Http\Controllers\Api\MailController;
 use App\Http\Controllers\Controller;
+use App\Models\Img;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
+use Intervention\Image\Facades\Image;
 
 class ApiProfileController extends Controller
 {
     public function data()
     {
-        $user = User::where('id', Auth::id())->first();
+        $user = User::where('id', Auth::id())->get();
         return ApiRes::data('datalist', $user);
     }
     public function personal(Request $req)
@@ -134,6 +139,113 @@ class ApiProfileController extends Controller
         $status = $user->save();
         if ($status) {
             return ApiRes::update();
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function uploadImg(Request $req)
+    {
+        $imgPath = "public/users/imgs/";
+        $status = false;
+        $uid = $req->user()->uid;
+        $maxId = Img::where('uid', $uid)->max('img_id') + 1;
+        $validator = Validator::make($req->all(), [
+            'image' => 'required|mimes:jpeg,jpg'
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('image')) {
+                return ApiRes::failed($errors->first('image'));
+            }
+        }
+
+
+        if ($req->hasFile('image')) {
+
+            $img = new Img();
+            $name =  uniqid() . ".webp";
+            Image::make($req->image->getRealPath())->resize('350', '350')->save($imgPath . $name);
+            $img->uid = $uid;
+            $img->img_id = $maxId;
+            $img->type = "md";
+            $img->image = $imgPath . $name;
+            $status = $img->save();
+
+            $img = new Img();
+            $name =  uniqid() . ".webp";
+            Image::make($req->image->getRealPath())->resize('750', '750')->save($imgPath . $name);
+            $img->uid = $uid;
+            $img->img_id = $maxId;
+            $img->type = "lg";
+            $img->image = $imgPath . $name;
+            $status = $img->save();
+            // for last image active at profile
+            $status = Img::where('uid', $uid)->update(['active' => '0']);
+            $img = Img::where('uid', $uid)->where('type', 'lg')->latest()->first();
+            $img->active = '1';
+            $status = $img->save();
+            $img = Img::where('uid', $uid)->where('type', 'md')->latest()->first();
+            $img->active = '1';
+            $status = $img->save();
+        }
+
+
+        if ($status) {
+            $user = User::Where('uid', $req->user()->uid)->first();
+            $user->photo = "1";
+            $user->update();
+            if ($status) {
+                return ApiRes::success("Profile image uploaded successfully !.");
+            } else {
+                return ApiRes::error();
+            }
+        } else {
+            return ApiRes::error();
+        }
+    }
+    public function uploadDocument(Request $req)
+    {
+        $filePath = "public/users/documents/";
+        $status = false;
+        $user = User::Where('uid', $req->user()->uid)->first();
+        $emailVFC =  uniqid();
+        $validator = Validator::make($req->all(), [
+            'document' => 'required|mimes:jpeg,jpg'
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('document')) {
+                return ApiRes::failed($errors->first('document'));
+            }
+        }
+        if ($req->hasFile('document')) {
+
+
+            if ($user->document_img != null) {
+                // delete old file
+                File::delete($user->document_img);
+            }
+            $name =  uniqid() . ".webp";
+            Image::make($req->document->getRealPath())->resize('450', '450')->save($filePath . $name);
+            $user->document_img = $filePath . $name;
+            $user->document = "1";
+            $user->status = "1";
+            $user->completed = "1";
+            $user->email_verification_code = $emailVFC;
+            $status = $user->update();
+        }
+
+
+        if ($status) {
+            $mail = new MailController();
+            $url = url('') . "/email-varification/" . $emailVFC;
+            $body = "<H1> Best Humsafar </H1> <br>
+                     <p>Thank you for registration </p>
+                     <a href='$url'> verify email </a>
+            ";
+            $mail->regMail($user->email, $body);
+
+            return ApiRes::success("Document uploaded successfully !.");
         } else {
             return ApiRes::error();
         }

@@ -83,6 +83,8 @@ Route::controller(ApiUserController::class)->group(function () {
     Route::any('/user/register', 'register');
     Route::any('/user/otp/send', 'sendOTP');
     Route::any('/user/otp/verify', 'verifyOTP');
+    // OTP For Login
+    Route::any('/user/login/send/otp', 'sendOTPLogin');
 });
 
 
@@ -110,6 +112,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::any('/profile/habits', 'habits');
         Route::any('/profile/family', 'family');
         Route::any('/profile/about', 'about');
+        Route::any('/profile/image', 'uploadImg');
+        Route::any('/profile/document', 'uploadDocument');
     });
 
     Route::controller(ApiPreferenceController::class)->group(function () {
