@@ -8,11 +8,18 @@ use App\Models\commission;
 use App\Models\User;
 use DateTime;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 
 class ApiUserController extends Controller
 {
+    public function data()
+    {
+        $data = User::with('img')->with('imgmd')->get();
+        return ApiRes::data("Datalist", $data);
+    }
     public function register(Request $req)
     {
         $validator = Validator::make($req->all(), [
@@ -191,6 +198,39 @@ class ApiUserController extends Controller
     }
     public function login(Request $req)
     {
+
+        $validator = Validator::make($req->all(), [
+            'email_or_phone' => 'required|string',
+            'password' => 'required|string',
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('email_or_phone')) {
+                return ApiRes::failed($errors->first('email_or_phone'));
+            } else if ($errors->first('password')) {
+                return ApiRes::failed($errors->first('password'));
+            }
+        }
+        $user = User::orwhere('email', $req->email_or_phone)->orwhere('phone', $req->email_or_phone)->first();
+        if ($user != null) {
+            if (Hash::check($req->password, $user->password)) {
+                $token = $user->createToken($user->uid)->plainTextToken;
+                return ApiRes::rlMsg("You login successfully !.", $user->uid, $token, $user->completed);
+            } else {
+                return ApiRes::credentials();
+            }
+        } else {
+            return ApiRes::failed("Data not found !");
+        }
+    }
+    public function logout(Request $req)
+    {
+        $user =  $req->user()->currentAccessToken()->delete();
+        if ($user) {
+            return  ApiRes::logout();
+        } else {
+            return ApiRes::error();
+        }
     }
     public function getAge($date)
     {

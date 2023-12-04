@@ -46,7 +46,7 @@ class User extends Authenticatable
     ];
     public function img()
     {
-        return $this->hasMany(Img::class, 'uid', 'uid')->where('type', 'lg');
+        return $this->hasMany(Img::class, 'uid', 'uid')->where('type', 'lg')->where('active', '1');
     }
     public function imgsm()
     {

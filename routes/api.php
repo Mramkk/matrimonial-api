@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\DegreeController;
 use App\Http\Controllers\Api\EducationController;
 use App\Http\Controllers\Api\InterestController;
+use App\Http\Controllers\Api\Member\ApiMemberController;
 use App\Http\Controllers\Api\MotherTongueController;
 use App\Http\Controllers\Api\OccupationController;
 use App\Http\Controllers\Api\PartnerPreferencesController;
@@ -81,6 +82,7 @@ Route::controller(OccupationController::class)->group(function () {
 
 Route::controller(ApiUserController::class)->group(function () {
     Route::any('/user/register', 'register');
+    Route::any('/user/login', 'login');
     Route::any('/user/otp/send', 'sendOTP');
     Route::any('/user/otp/verify', 'verifyOTP');
     // OTP For Login
@@ -101,6 +103,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     // Route::post('/user/upload-profile-img', [UserController::class, "uploadProfileImg"]);
 
     // Route::any('/user/image', [UserController::class, "UserImage"]);
+
+    Route::controller(ApiUserController::class)->group(function () {
+        Route::any('/user', 'data');
+        Route::any('/user/logout', 'logout');
+    });
+    Route::controller(ApiMemberController::class)->group(function () {
+        Route::any('/member', 'data');
+    });
 
     Route::controller(ApiProfileController::class)->group(function () {
         Route::any('/profile/data', 'data');

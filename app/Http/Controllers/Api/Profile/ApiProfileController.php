@@ -18,7 +18,7 @@ class ApiProfileController extends Controller
 {
     public function data()
     {
-        $user = User::where('id', Auth::id())->get();
+        $user = User::where('id', Auth::id())->first();
         return ApiRes::data('datalist', $user);
     }
     public function personal(Request $req)
