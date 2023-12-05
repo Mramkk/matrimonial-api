@@ -17,7 +17,7 @@ class ApiUserController extends Controller
 {
     public function data()
     {
-        $data = User::with('img')->with('imgmd')->get();
+        $data = User::where('uid', auth()->user()->uid)->with('img')->with('imgmd')->get();
         return ApiRes::data("Datalist", $data);
     }
     public function register(Request $req)
