@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\OccupationController;
 use App\Http\Controllers\Api\PartnerPreferencesController;
 use App\Http\Controllers\Api\Preference\ApiPreferenceController;
 use App\Http\Controllers\Api\Preference\ApiPreferenceCountryController;
+use App\Http\Controllers\Api\Preference\ApiPreferenceReligionController;
 use App\Http\Controllers\Api\Profile\ApiProfileController;
 use App\Http\Controllers\Api\Religion\ApiReligionController;
 use App\Http\Controllers\Api\ReligionController;
@@ -50,6 +51,9 @@ Route::controller(ApiPreferenceCountryController::class)->group(function () {
     Route::any('/preference/state', 'state');
     Route::any('/preference/city', 'city');
 });
+Route::controller(ApiPreferenceReligionController::class)->group(function () {
+    Route::any('/preference/religion/community', 'community');
+});
 // Route::controller(CountryController::class)->group(function () {
 //     Route::any('/country', 'country');
 // });
@@ -85,6 +89,7 @@ Route::controller(ApiUserController::class)->group(function () {
     Route::any('/user/login', 'login');
     Route::any('/user/otp/send', 'sendOTP');
     Route::any('/user/otp/verify', 'verifyOTP');
+
     // OTP For Login
     Route::any('/user/login/send/otp', 'sendOTPLogin');
 });
@@ -106,6 +111,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::controller(ApiUserController::class)->group(function () {
         Route::any('/user', 'data');
+        Route::any('/user/password/reset', 'passwordReset');
         Route::any('/user/logout', 'logout');
     });
     Route::controller(ApiMemberController::class)->group(function () {

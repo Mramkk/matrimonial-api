@@ -223,6 +223,38 @@ class ApiUserController extends Controller
             return ApiRes::failed("Data not found !");
         }
     }
+    public function passwordReset(Request $req)
+    {
+        $validator = Validator::make($req->all(), [
+            'password' => 'required|min:8',
+            'confirm_password' => 'required|min:8|same:password',
+        ]);
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            if ($errors->first('password')) {
+                return ApiRes::failed($errors->first('password'));
+            } else if ($errors->first('confirm_password')) {
+                return ApiRes::failed($errors->first('confirm_password'));
+            }
+        }
+        $user = User::where('id', auth()->user()->id)->first();
+        if ($user != null) {
+            $user->password = Hash::make($req->password);
+            $status = $user->update();
+            if ($status) {
+                $status =  $req->user()->currentAccessToken()->delete();
+                if ($status) {
+                    return  ApiRes::success('Password changed successfuly !');
+                } else {
+                    return  ApiRes::error();
+                }
+            } else {
+                return  ApiRes::error();
+            }
+        } else {
+            return ApiRes::error();
+        }
+    }
     public function logout(Request $req)
     {
         $user =  $req->user()->currentAccessToken()->delete();
