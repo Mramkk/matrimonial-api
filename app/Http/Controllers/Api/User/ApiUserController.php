@@ -17,7 +17,7 @@ class ApiUserController extends Controller
 {
     public function data()
     {
-        $data = User::where('uid', auth()->user()->uid)->with('img')->with('imgmd')->get();
+        $data = User::where('uid', auth()->user()->uid)->with('img')->with('imglg')->get();
         return ApiRes::data("Datalist", $data);
     }
     public function register(Request $req)
@@ -57,9 +57,9 @@ class ApiUserController extends Controller
                 return ApiRes::failed($errors->first('country'));
             }
         }
-
+        $uid = "BH" . random_int(10000000, 99999999);
         $user = new User();
-        $user->uid = "BH" . random_int(10000000, 99999999);
+        $user->uid = $uid;
         $user->profile_for = $req->profile_for;
         $user->first_name = $req->first_name;
         $user->last_name = $req->last_name;
@@ -79,11 +79,17 @@ class ApiUserController extends Controller
             if ($com != null) {
                 $com->points = $com->points + 10;
                 $com->update();
+                $user = User::where('uid', $uid)->first();
+                $user->ref_id = $req->referral_code;
+                $status =  $user->update();
             } else {
                 $com = new commission();
                 $com->uid = $user->uid;
                 $com->points =  10;
                 $status = $com->save();
+                $user = User::where('uid', $uid)->first();
+                $user->ref_id = $req->referral_code;
+                $status =  $user->update();
             }
         }
         if ($status) {
