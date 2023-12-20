@@ -40,7 +40,9 @@ class InterestController extends Controller
     }
     public function data(Request $req)
     {
-        $short = Interest::select('uid')->where('muid', $req->user()->uid)->latest()->with('user')->get();
+        $short = Interest::where('muid', $req->user()->uid)->latest()->with('user', function ($user) {
+            return $user->with('img')->with('imglg')->with('shortlist')->with('interest')->with('visited');
+        })->get();
 
         if ($short) {
             return ApiRes::data('Interest Data', $short);

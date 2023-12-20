@@ -41,7 +41,10 @@ class ShortlitController extends Controller
     public function data(Request $req)
     {
 
-        $short = Shortlit::select('uid')->where('muid', $req->user()->uid)->latest()->with('user')->get();
+        $short = Shortlit::where('muid', $req->user()->uid)
+            ->latest()->with('user', function ($user) {
+                return $user->with('img')->with('imglg')->with('shortlist')->with('interest')->with('visited');
+            })->get();
 
 
         if ($short) {

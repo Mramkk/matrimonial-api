@@ -11,7 +11,7 @@ class Shortlit extends Model
 
     public function user()
     {
-        return $this->hasOne(User::class, 'uid', 'uid')->with('imgsm')->with('imgmd')->with('imglg')->withCount('img')->with('shortlist')->with('interest')->with('visited');
+        return $this->hasOne(User::class, 'uid', 'uid');
     }
 
     public function img()

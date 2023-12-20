@@ -11,7 +11,7 @@ class ApiMemberController extends Controller
 {
     public function data()
     {
-        $data = User::whereNotIn('uid', [auth()->user()->uid])->where('completed', '1')->with('img')->with('imglg')->with('shortlist')->with('interest')->get();
+        $data = User::whereNotIn('uid', [auth()->user()->uid])->where('completed', '1')->with('img')->with('imglg')->with('shortlist')->with('interest')->with('visited')->get();
         return ApiRes::data("Datalist", $data);
     }
 }
