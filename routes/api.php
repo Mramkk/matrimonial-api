@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Country\ApiCountryController;
 use App\Http\Controllers\Api\CountryController;
 use App\Http\Controllers\Api\DegreeController;
 use App\Http\Controllers\Api\EducationController;
+use App\Http\Controllers\Api\Interest\ApiInterestController;
 use App\Http\Controllers\Api\InterestController;
 use App\Http\Controllers\Api\Member\ApiMemberController;
 use App\Http\Controllers\Api\MotherTongueController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\Preference\ApiPreferenceReligionController;
 use App\Http\Controllers\Api\Profile\ApiProfileController;
 use App\Http\Controllers\Api\Religion\ApiReligionController;
 use App\Http\Controllers\Api\ReligionController;
+use App\Http\Controllers\Api\Shortlist\ApiShortlistController;
 use App\Http\Controllers\Api\ShortlitController;
 use App\Http\Controllers\Api\User\ApiUserController;
 use App\Http\Controllers\Api\VisitedProfileController;
@@ -142,8 +144,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     });
 
 
-    Route::controller(ShortlitController::class)->group(function () {
-        Route::any('/shortlist', 'shortlist');
+    // Route::controller(ShortlitController::class)->group(function () {
+    //     Route::any('/shortlist', 'shortlist');
+    // });
+    Route::controller(ApiShortlistController::class)->group(function () {
+        Route::any('/shortlist/data', 'data');
+        Route::any('/shortlist/save', 'save');
+        Route::any('/shortlist/delete', 'delete');
     });
 
     Route::controller(PartnerPreferencesController::class)->group(function () {
@@ -154,13 +161,17 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     //     Route::any('/visited-profile', 'visitedProfile');
     // });
     Route::controller(ApiVisitedController::class)->group(function () {
-        // Route::any('/visited-profile', 'visitedProfile');
         Route::any('/visited/data', 'data');
         Route::any('/visited/save', 'save');
         Route::any('/visited/delete', 'delete');
     });
 
-    Route::controller(InterestController::class)->group(function () {
-        Route::any('/interest', 'interest');
+    // Route::controller(InterestController::class)->group(function () {
+    //     Route::any('/interest', 'interest');
+    // });
+    Route::controller(ApiInterestController::class)->group(function () {
+        Route::any('/interest/data', 'data');
+        Route::any('/interest/save', 'save');
+        Route::any('/interest/delete', 'delete');
     });
 });
