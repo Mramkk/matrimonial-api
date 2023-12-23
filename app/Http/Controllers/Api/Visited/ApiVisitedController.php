@@ -28,7 +28,7 @@ class ApiVisitedController extends Controller
     }
     public function data(Request $req)
     {
-        $visit = VisitedProfile::where('muid', $req->user()->uid)->latest()->with('user', function ($user) {
+        $visit = VisitedProfile::where('uid', $req->user()->uid)->latest()->with('user', function ($user) {
             return $user->with('img')->with('imglg')->with('shortlist')->with('interest')->with('visited');
         })->get();
 
