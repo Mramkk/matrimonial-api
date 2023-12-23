@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\ShortlitController;
 use App\Http\Controllers\Api\User\ApiUserController;
 use App\Http\Controllers\Api\VisitedProfileController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\Visited\ApiVisitedController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -149,8 +150,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::any('/partner-preference', 'partnerPreference');
     });
 
-    Route::controller(VisitedProfileController::class)->group(function () {
-        Route::any('/visited-profile', 'visitedProfile');
+    // Route::controller(VisitedProfileController::class)->group(function () {
+    //     Route::any('/visited-profile', 'visitedProfile');
+    // });
+    Route::controller(ApiVisitedController::class)->group(function () {
+        // Route::any('/visited-profile', 'visitedProfile');
+        Route::any('/visited/data', 'data');
+        Route::any('/visited/save', 'save');
+        Route::any('/visited/delete', 'delete');
     });
 
     Route::controller(InterestController::class)->group(function () {

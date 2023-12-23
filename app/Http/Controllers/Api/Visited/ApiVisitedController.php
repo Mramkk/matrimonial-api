@@ -1,30 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Visited;
 
 use App\Helper\ApiRes;
 use App\Http\Controllers\Controller;
 use App\Models\VisitedProfile;
 use Illuminate\Http\Request;
 
-class VisitedProfileController extends Controller
+class ApiVisitedController extends Controller
 {
-    public function visitedProfile(Request $req)
-    {
-        if ($req->user()->status == 1) {
-            if ($req->action == "save") {
-                return $this->save($req);
-            } elseif ($req->action == "data") {
-                return $this->data($req);
-            } elseif ($req->action == "delete") {
-                return $this->delete($req);
-            } else {
-                return  ApiRes::invalidAction();
-            }
-        } else {
-            return  ApiRes::invalidAction();
-        }
-    }
     public function save(Request $req)
     {
         $status = VisitedProfile::where('uid', $req->uid)->where('muid', $req->user()->uid)->first();
