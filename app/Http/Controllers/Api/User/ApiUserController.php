@@ -20,6 +20,11 @@ class ApiUserController extends Controller
         $data = User::where('uid', auth()->user()->uid)->with('img')->with('imglg')->get();
         return ApiRes::data("Datalist", $data);
     }
+    public function byId(Request $req)
+    {
+        $data = User::where('uid', $req->uid)->where('completed', '1')->with('img')->with('imglg')->get();
+        return ApiRes::data("Datalist", $data);
+    }
     public function register(Request $req)
     {
         $validator = Validator::make($req->all(), [

@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\Interest\ApiInterestController;
 use App\Http\Controllers\Api\InterestController;
 use App\Http\Controllers\Api\Member\ApiMemberController;
 use App\Http\Controllers\Api\MotherTongueController;
+use App\Http\Controllers\Api\MyMatches\ApiMyMatchesController;
+use App\Http\Controllers\Api\NearMe\ApiNearMeController;
 use App\Http\Controllers\Api\OccupationController;
 use App\Http\Controllers\Api\PartnerPreferencesController;
 use App\Http\Controllers\Api\Preference\ApiPreferenceController;
@@ -17,11 +19,14 @@ use App\Http\Controllers\Api\Preference\ApiPreferenceReligionController;
 use App\Http\Controllers\Api\Profile\ApiProfileController;
 use App\Http\Controllers\Api\Religion\ApiReligionController;
 use App\Http\Controllers\Api\ReligionController;
+use App\Http\Controllers\Api\Search\ApiSearchController;
 use App\Http\Controllers\Api\Shortlist\ApiShortlistController;
 use App\Http\Controllers\Api\ShortlitController;
 use App\Http\Controllers\Api\User\ApiUserController;
 use App\Http\Controllers\Api\VisitedProfileController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\View\ApiViewController;
+use App\Http\Controllers\Api\Viewed\ApiViewedController;
 use App\Http\Controllers\Api\Visited\ApiVisitedController;
 use Illuminate\Support\Facades\Route;
 
@@ -114,6 +119,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::controller(ApiUserController::class)->group(function () {
         Route::any('/user', 'data');
+        Route::any('/user/by-id', 'byId');
         Route::any('/user/password/reset', 'passwordReset');
         Route::any('/user/logout', 'logout');
     });
@@ -166,6 +172,12 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::any('/visited/delete', 'delete');
     });
 
+    Route::controller(ApiViewedController::class)->group(function () {
+        Route::any('/viewed/data', 'data');
+        Route::any('/viewed/save', 'save');
+        Route::any('/viewed/delete', 'delete');
+    });
+
     // Route::controller(InterestController::class)->group(function () {
     //     Route::any('/interest', 'interest');
     // });
@@ -173,5 +185,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::any('/interest/data', 'data');
         Route::any('/interest/save', 'save');
         Route::any('/interest/delete', 'delete');
+    });
+    Route::controller(ApiNearMeController::class)->group(function () {
+        Route::any('/nearme', 'data');
+    });
+    Route::controller(ApiMyMatchesController::class)->group(function () {
+        Route::any('/mymatches', 'data');
+    });
+    Route::controller(ApiSearchController::class)->group(function () {
+        Route::any('/search', 'data');
+        Route::any('/search-by', 'dataBy');
     });
 });
