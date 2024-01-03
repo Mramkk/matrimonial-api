@@ -68,7 +68,7 @@ class ApiSearchController extends Controller
     public function dataBy(Request $req)
     {
         if ($req->search != "") {
-            $data = User::whereNotIn('uid', [auth()->user()->uid])->orwhere('uid', 'like', '%' . $req->search . '%')->orwhere('first_name', 'like', '%' . $req->search . '%')->where('completed', '1')->with('img')->with('imglg')->with('shortlist')->with('interest')->with('visited')->get();
+            $data = User::orwhere('uid', 'like', '%' . $req->search . '%')->orwhere('first_name', 'like', '%' . $req->search . '%')->orwhere('last_name', 'like', '%' . $req->search . '%')->where('completed', '1')->with('img')->with('imglg')->with('shortlist')->with('interest')->with('visited')->get();
             return ApiRes::data("Datalist", $data);
         }
         return ApiRes::failed("Data not found.");
