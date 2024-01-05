@@ -142,6 +142,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     });
 
     Route::controller(ApiPreferenceController::class)->group(function () {
+        Route::any('/preference', 'data');
         Route::any('/preference/basic', 'basic');
         Route::any('/preference/religion', 'religion');
         Route::any('/preference/location', 'location');

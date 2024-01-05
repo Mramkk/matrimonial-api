@@ -9,6 +9,15 @@ use Illuminate\Http\Request;
 
 class ApiPreferenceController extends Controller
 {
+    public function data()
+    {
+        $data = PartnerPreference::where('uid', auth()->user()->uid)->first();
+        if ($data) {
+            return ApiRes::data('datalist', $data);
+        } else {
+            return ApiRes::error();
+        }
+    }
     public function basic(Request $req)
     {
         $status = PartnerPreference::where('uid', $req->user()->uid)->first();
