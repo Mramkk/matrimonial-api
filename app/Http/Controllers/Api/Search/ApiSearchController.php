@@ -11,9 +11,9 @@ class ApiSearchController extends Controller
 {
     public function data(Request $req)
     {
-        $data = null;
+        $data = User::whereNotIn('uid', [auth()->user()->uid])->where('completed', '1')->with('img')->with('imglg')->with('shortlist')->with('interest')->with('visited')->get();
         if ($req->age_from != "" && $req->age_to != "") {
-            $data = User::whereNotIn('uid', [auth()->user()->uid])->whereBetween('age', [$req->age_from, $req->age_to])->where('completed', '1')->with('img')->with('imglg')->with('shortlist')->with('interest')->with('visited')->get();
+            $data = $data->whereBetween('age', [$req->age_from, $req->age_to]);
         }
         if ($req->height_from != "" && $req->height_to != "") {
             $data = $data->whereBetween('height', [$req->height_from, $req->height_to]);
