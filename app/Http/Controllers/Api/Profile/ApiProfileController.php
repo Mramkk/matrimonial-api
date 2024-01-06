@@ -250,4 +250,29 @@ class ApiProfileController extends Controller
             return ApiRes::error();
         }
     }
+    public function photoPrivacy(Request $req)
+    {
+
+        try {
+            $user = User::Where('uid', $req->user()->uid)->first();
+            $user->photo_privacy = $req->photo_privacy;
+            $user->update();
+            return ApiRes::success("Photo privacy updated successfully !.");
+        } catch (\Throwable $th) {
+            //throw $th;
+            return ApiRes::failed($th->getMessage());
+        }
+    }
+    public function phonePrivacy(Request $req)
+    {
+        try {
+            $user = User::Where('uid', $req->user()->uid)->first();
+            $user->phone_privacy = $req->phone_privacy;
+            $user->update();
+            return ApiRes::success("Phone privacy updated successfully !.");
+        } catch (\Throwable $th) {
+            //throw $th;
+            return ApiRes::error();
+        }
+    }
 }

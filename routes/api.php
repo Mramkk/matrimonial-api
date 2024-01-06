@@ -139,6 +139,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::any('/profile/about', 'about');
         Route::any('/profile/image', 'uploadImg');
         Route::any('/profile/document', 'uploadDocument');
+        Route::any('/profile/photo-privacy', 'photoPrivacy');
+        Route::any('/profile/phone-privacy', 'phonePrivacy');
     });
 
     Route::controller(ApiPreferenceController::class)->group(function () {

@@ -58,7 +58,7 @@ class User extends Authenticatable
     }
     public function imglg()
     {
-        return $this->hasMany(Img::class, 'uid', 'uid')->where('type', 'lg')->where('visible', '1');
+        return $this->hasMany(Img::class, 'uid', 'uid')->where('type', 'lg')->where('active', '1');
     }
 
     public function shortlist()

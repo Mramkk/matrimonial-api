@@ -22,7 +22,7 @@ class ApiUserController extends Controller
     }
     public function byId(Request $req)
     {
-        $data = User::where('uid', $req->uid)->where('completed', '1')->with('img')->with('imglg')->get();
+        $data = User::where('uid', $req->uid)->where('completed', '1')->with('img')->with('imglg')->with("interest")->get();
         return ApiRes::data("Datalist", $data);
     }
     public function register(Request $req)
